@@ -224,6 +224,7 @@ void command_connect(int argc, char *argv[])
 	
 	ret = sim900a_send("AT+CIPHEAD=1", strlen("AT+CIPHEAD=1"), 3, 20);
 	sim900a_command_result("AT+CIPHEAD=1", ret);
+	os_dly_wait(80);
 	//AT+CIPSTART="TCP","58.215.235.62","61233"
 	if(charger.protocol == TCP)
 	{
@@ -262,11 +263,12 @@ void command_send(int argc, char *argv[])
 	{
 		ret = sim900a_send("AT+CIPSEND", strlen("AT+CIPSEND"), 3, 20);
 		sim900a_command_result("AT+CIPSEND", ret);
+		os_dly_wait(80);
 		uart3_send_str(argv[1], strlen(argv[1]));
 		end = get_ctrl_code('Z');
-		//uart3_send_str(&end, 1);
-		ret = sim900a_send(&end, 1, 30, 20);
-		sim900a_command_result("CTRL+Z", ret);
+		uart3_send_str(&end, 1);
+		//ret = sim900a_send(&end, 1, 30, 20);
+		//sim900a_command_result("CTRL+Z", ret);
 	}
 	else
 	{

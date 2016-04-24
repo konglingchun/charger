@@ -51,7 +51,7 @@ void charger_data_init(void)
 	u32 chip_id_addr = 0x1ffff7e8;
 	
 	charger.sim900a_power = OFF;
-	charger.uart3_debug = OFF;
+	charger.uart3_debug = ON;
 	charger.protocol = TCP;
 	memset(charger.tel_num, 0, sizeof(charger.tel_num));
 	charger.message_index = 0;
@@ -102,27 +102,70 @@ void print_buffer(char *buffer, int length)
 	}
 }
 
+int str_compare(char *src, int src_size,
+				char *begin, int begin_size,
+				char *end, int end_size)
+{
+	int i,j;
+
+	//print_buffer(src, src_size);
+	//print_buffer(begin, begin_size);
+	//print_buffer(end, end_size);
+	if((begin_size>src_size)
+		||(end_size>src_size))
+	{
+		return 0;
+	}
+	else
+	{
+		for(i=0;i<begin_size;i++)
+		{
+			//printf("src=%#x, begin=%#x\r\n", src[i], begin[i]);
+			if(src[i] != begin[i])
+			{
+				return 0;
+			}
+		}
+		for(i=(src_size-end_size),j=0;i<src_size;i++,j++)
+		{
+			//printf("src=%#x, end=%#x\r\n", src[i], end[j]);
+			if(src[i] != end[j])
+			{
+				return 0;
+			}
+		}
+	}
+	return 1;
+}
+
+typedef struct
+{
+	char begin[30];
+	char end[30];
+}str_compare_t;
+
 __task void process_uart3(void)
 {
 	u32 index;
-	char transpond[][30] =
+	str_compare_t transpond[] =
 	{
-		"\r\nOK\r\n",
-		"\r\nSEND OK",
-		"AT\r\n",
-		"AT+CSQ",
-		"AT+CIPHEAD",
-		"AT+CIPSTART",
-		"AT+MORING",
-		"AT+CIPSEND",
-		"AT+CIPSTATUS",
-		"AT+CIPCLOSE",
-		"AT+CIPSHUT",
-		"AT+CIPMUX",
-		"AT+CIPRXGET",
-		"AT+CIPQRCLOSE",
-		"AT+CIPMODE",
-		"AT+CBC",
+		"\r","\nOK\r\n",
+		"AT+CSQ","\r\n",
+		"AT+CIPHEAD","\r\n",
+		"AT+CIPSTART","\r\n",
+		"AT+MORING","\r\n",
+		"AT+CIPSEND","> ",
+		"AT+CIPSTATUS","\r\n",
+		"AT+CIPCLOSE","\r\n",
+		"AT+CIPSHUT","\r\n",
+		"AT+CIPMUX","\r\n",
+		"AT+CIPRXGET","\r\n",
+		"AT+CIPQRCLOSE","\r\n",
+		"AT+CIPMODE","\r\n",
+		"AT+CBC","\r\n",
+		"ATH","\r\nOK\r\n",
+		"\r\n","\r\nSEND OK\r\n",
+		"AT\r\n","\r\n",
 	};
 	
 	while(1)
@@ -151,17 +194,14 @@ __task void process_uart3(void)
 			}
 			//分发和处理接收到的信息
 			for(i=0;i<ARRAY_SIZE(transpond);i++)
-			{			
-				if(strncmp(command, transpond[i], strlen(transpond[i])) == 0)
+			{
+				if(str_compare(command, ret, 
+					transpond[i].begin, strlen(transpond[i].begin),
+					transpond[i].end, strlen(transpond[i].end)))
 				{
-					//printf("[[%s]] matched\r\n", transpond[i]);
 					msg = (char *)calloc(1, ret);
 					memcpy(msg, command, ret);
 					os_mbx_send(&sim900a_receive, msg, 0);
-				}
-				else
-				{
-					//printf("[[%s]] not matched\r\n", transpond[i]);
 				}
 			}
 			receive = strstr(command, "+IPD,");
