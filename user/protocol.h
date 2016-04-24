@@ -1,5 +1,9 @@
 #ifndef _PROTOCOL_H_
-#ifndef _PROTOCOL_H_
+#define _PROTOCOL_H_
+
+#include "stm32f10x.h"
+
+//传输规则:先传高位再传低位
 
 typedef enum
 {
